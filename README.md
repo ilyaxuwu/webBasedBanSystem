@@ -1,103 +1,104 @@
-# Building a Real Ban System for IO Games (Without being retarded)
-> **Note:** This repository is a guide for developers if they wish to create a 'Next Generation' ban system. IP banning is a very common method in most .io games, and it is extremely easy to circumvent. This system is intended to be **server-sided** and **multi-layered**.
+# Building a Real Ban System for .io Games (Stop Using IP Bans)
 
-However,
+> **Heads up:** This repo is for devs who actually want to stop cheaters. If you are just using `socket.remoteAddress` to ban people, you are doing it wrong. This guide explains how to build a **server-sided**, **multi-layered** system that is genuinely annoying to bypass.
 
-## 1. What Makes a Ban System Good?
-
-First, a real ban system should not be based on just one factor. It must be a variety of things.
-1.  **Server-Side Control:** Never trust the client (browser). The final decision must always be on the server.
-2.  **Multi-Layer Identity:** UserID + Fingerprint + TLS Hash + Behavior.
-3.  **Logs & Transparency:** You should save *why* you banned someone (UserID, JA3, Reason, Date).
-
-4.  **Persistence:** In case they delete the cookies, it will automatically rest the ID (Evercookie).
-
-5.  **Anti-Bypass:** It should be able to detect use of VPNs and
-
-The actors
-## 2. Why Do Most IO Games Fail?
-The following are the most common weak points found in other games:
-
-*   **IP Ban:** The player restarts their router and gets a new IP, returning to the game immediately.
-
-*   **Client Side Ban:** If you write if (banned) { alert("Bye") }, the cheater will simply remove the code from the browser console (F12).
-
-*   **Simple LocalStorage:** Just delete the browser's history/data, and the ban will be lifted.
-
-*   **No Behavior Check:** The bots move the mouse in perfect straight lines, which most games do not take into account.
-The binary
-## 3. The Architecture (How It Works)
-The system operates with a loop between Client and Server.
-### [CLIENT SIDE]
-1.  **User opens the game.**
-
-2.  **JavaScript collects data:**
-*   **Fingerprint:** (Canvas + WebGL + Audio + RAM + Screen Resolution).
-*   **Local IP:** (via the WebRTC leak if possible).
-*   **Behavior:** (Mouse movements, typing rhythm)
-3.   **Sends this data to the server** via `POST /auth`.
-### [SERVER SIDE]
-4.  *The server receives the data.*
-5.  **Crucial Step:** The server will determine the **JA3 Hash** based on the connection (TLS Handshake).
-*   *Note: JavaScript is invisible to JA3, whereas the server is not.*
-6.  **The server checks the Database:**
-*   Is **UserID** banned?
-
-*   Is this **Fingerprint** banned?
-
-*   Is this **JA3 Hash** suspicious (i.e., Python bot hash)?
-
-*   Is the **IP** a known VPN?
-7.  **Decision
-*   If **BANNED**: Return `{ ok: false, reason: "Security Violation" }`.
-
-*   If **CLEAN**: Generate a temporary **Token** and have them play.
-#Image
-
-### 4. Advanced Browser Fingerprinting
-
-We not only use Canvas, we develop a "Super Hash" by hashing various hardware information.
-
-**How it works:**
-*   **Canvas & WebGL:** The browser creates an invisible image in 3D. Every Graphics Card (GPU) displays this slightly differently.
-*   **AudioContext:** An audio context is created by the browser. The actual math of the sound compression varies depending on your hardware.
-*   **Hardware Info:** RAM, number of CPU Cores, Screen size.
-
-**How to bypass & Fix:**
-*   *Cheaters use:* Brave browser or "Canvas Blocker" extensions to add noise (random) values.
-
-*   *Solution:* If the canvas data looks "noisy" -- looks mathematically fake -- mark this user **Suspicious**, but don't ban them at this time; send them a CAPTCHA.
-
-Being a
-
-### 5. TLS Fingerprinting (JA3) - Server Side
-This is the strongest because it happens at the network layer, not the browser.
-**How it works:**
-So, henceforth, when your browser establishes a connection with your server using https, your browser says "hello." However, different ways of saying "hello" are referred to as Cipher suites, SSL version, etc. All these combinations are represented as a unique
-*   "Chrome has a specific JA3."
-
-*   Firefox uses a different one.
-*   The Python script, i.e., the Bot has a totally different one.
-
-**Strategy
-
-*   User claims to be "Google Chrome" but has a "Python" JA3 hash -> **Ban immediately.**
-
-*   The banned user changes their IP, clears their cookies, but his **JA3 + Fingerprint** is the same.-> **Ban again.**
 ---
-## 6. "Evercookie"
 
-Cheaters typically delete cookies to avoid the ban. To prevent this, UserID must be saved always.
+## 1. The Philosophy (How not to suck)
+A good ban system isn't about one magic trick. It's about layering traps. If you trust the client (the browser), you lose. Always.
 
-**Storage Locations:**
+**Your system needs to be:**
+*   **Server-Authoritative:** The client sends data, but the Server decides the truth.
+*   **Sticky:** If they clear cookies, the ban should stay.
+*   **Noisy:** Log everything. You need to know *why* someone got banned (JA3? Fingerprint? Behavior?).
+*   **Smart:** Don't just ban IPs. Ban the identity.
 
-1. LocalStorage
+---
+
+## 2. Why Most Games Fail
+Let's be real, most .io games have terrible security.
+*   **IP Bans:** Kid restarts router -> New IP -> Back in game. Useless.
+*   **Client-Side Checks:** If you have code like `if (isBanned) window.close()`, any script kiddie can delete that line in the F12 console.
+*   **Ignoring Behavior:** Bots walk in perfect straight lines. If you aren't checking for that, you're inviting them in.
+
+---
+
+## 3. The Architecture
+Here is the logic. It works in a loop between the Client and your Backend.
+
+### [CLIENT SIDE]
+1.  **User loads the game.**
+2.  **JS grabs the fingerprints:**
+    *   Canvas, WebGL, AudioContext, RAM, Screen Res.
+    *   Tries to leak Local IP via WebRTC (if the browser allows it).
+    *   Records mouse movement variance (is it robotic?).
+3.  **Sends it to `/auth`.**
+
+### [SERVER SIDE - The Brain]
+4.  **Receive the data.**
+5.  **The Secret Weapon (JA3):** While the handshake happens, the server calculates the **JA3 Hash** from the TLS connection.
+    *   *Note: You can't do this in JS. It has to be done on the backend (Node, Go, Nginx, etc).*
+6.  **Check the DB:**
+    *   UserID banned?
+    *   Fingerprint hash matches a banned one?
+    *   JA3 hash looks like a Python script instead of Chrome?
+    *   IP belongs to a VPN provider?
+7.  **Verdict:**
+    *   **BANNED:** Send a generic error (don't tell them exactly why).
+    *   **CLEAN:** Give them a temporary token and let them play.
+
+---
+
+## 4. Fingerprinting (Make it stick)
+Canvas fingerprinting alone is too easy to fake now. You need a "Super Hash". Combine WebGL renderer info, AudioContext latency, and hardware concurrency.
+
+**The "Brave" Problem:**
+Browsers like Brave or extensions like "Canvas Blocker" add random noise to the data.
+*   **My advice:** If the fingerprint looks mathematically "noisy" or fake, don't ban them instantly (might be a privacy nut, not a cheater). Just flag them as **Suspicious** and force a CAPTCHA.
+
+---
+
+## 5. TLS Fingerprinting (JA3)
+This is your best defense against bots.
+When a browser connects to your HTTPS server, the "Client Hello" packet has a specific structure.
+*   Chrome's structure is unique.
+*   Firefox is different.
+*   A Node.js or Python bot is **completely different**.
+
+**Strategy:**
+If the User-Agent says "I am Google Chrome" but the JA3 hash says "I am a Python Script" -> **Instant Ban.**
+
+---
+
+## 6. "Evercookie" (Persistence)
+Cheaters love clearing cookies. We can make that harder.
+Don't just save the UserID in `document.cookie`. Save it in:
+1.  LocalStorage
 2.  SessionStorage
-
-3. IndexedDB (Browser Database)
+3.  IndexedDB
 4.  Cache Storage
-5. Service Workers
+5.  Service Workers
 
-**Logic
+** The Logic:**
+When they visit the site, check *all* of these. If they cleared Cookies but forgot IndexedDB? **Respawn the cookie.** The ban is back.
 
-The script checks all these locations when the user visits the site. *   If the user deletes the *Cookies*, but forgets the *IndexedDB*, the script locates the ID and **re-saves (respawns)** it back to Cookies. The ban is reinstated.* “BACKGROUND ## 7. IP & VPN Detection (WebRTC) Cheaters use VPN to hide their IP. **How it works:** "WebRTC is used in voice chats, however it leaks **Local IP**, also known as the **Real IP**." *    **Check:** Compare the HTTP Request IP (VPN IP) to the WebRTC IP. *   **Result:** When they do not match (e.g., HTTP is Germany, WebRTC is Turkey), it's a VPN. Block or validate. * By **8. Behavior Analysis** If the player skips all that, his **behavior** will give him away. **How it works:** *   **Mouse Path:** The movement of the mouse is curved for humans, with a few errors. However, for bots, this movement is perfectly linear. *   **Keystroke Rhythm:** All humans have individual typing speeds. For example, the time taken in between 'W' and 'A' key press. **Solution Record the last 10 seconds of movement. *   If `Movement_Variance == 0`: Perfect line -> **It is a Bot.** *   If the rhythm matches a previously banned player's rhythm, flag it for **Suspicious.** -,*, ### Conclusion "With **Server-Side JA3**, **Browser Fingerprinting**, and **Behavior Analysis**, you're creating a system which is very annoying to circumvent. For the cheater to play again, they must change their IP, Browser, Hardware, and Playstyle all at once."
+---
+
+## 7. Detecting VPNs & Proxies
+WebRTC is useful here. Even if they use a VPN, WebRTC can sometimes leak the real IP or at least show a mismatch.
+*   **Check:** Does the HTTP Request IP match the WebRTC IP?
+*   **Result:** If HTTP says "Germany" but WebRTC says "Turkey" (or fails completely), it's likely a proxy. Flag it.
+
+---
+
+## 8. Behavior Analysis
+If they spoof everything else, they can't easily spoof being human.
+*   **Mouse Path:** Humans make curved movements with variable speed. Bots move in straight lines (`variance == 0`).
+*   **Rhythm:** Track the delay between key presses. If it's perfectly constant (e.g., exactly 50ms every time), it's a macro.
+
+---
+
+### Final Thoughts
+There is no such thing as "100% unbannable." But if you combine Server-Side JA3, hardware fingerprinting, and behavior checks, you force the cheater to change their IP, Browser, Hardware, and playstyle all at once to get back in.
+
+Most of them will just give up. Good luck.
