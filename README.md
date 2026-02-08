@@ -54,7 +54,7 @@ Canvas fingerprinting alone is too easy to fake now. You need a "Super Hash". Co
 
 **The "Brave" Problem:**
 Browsers like Brave or extensions like "Canvas Blocker" add random noise to the data.
-*   **My advice:** If the fingerprint looks mathematically "noisy" or fake, don't ban them instantly (might be a privacy nut, not a cheater). Just flag them as **Suspicious** and force a CAPTCHA.
+*   **My advice:** If the fingerprint looks mathematically "noisy" or fake, don't ban them instantly (might be a privacy nut, not a cheater). Just flag them as **Suspicious**
 
 ---
 
