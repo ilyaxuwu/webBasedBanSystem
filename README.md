@@ -1,10 +1,10 @@
-# Building a Real Ban System for .io Games (Stop Using IP Bans)
+# Building a Real Ban System for .io Games (Without being a retard)
 
 > **Heads up:** This repo is for devs who actually want to stop cheaters. If you are just using `socket.remoteAddress` to ban people, you are doing it wrong. This guide explains how to build a **server-sided**, **multi-layered** system that is genuinely annoying to bypass.
 
 ---
 
-## 1. The Philosophy (How not to suck)
+## 1. The Philosophy
 A good ban system isn't about one magic trick. It's about layering traps. If you trust the client (the browser), you lose. Always.
 
 **Your system needs to be:**
