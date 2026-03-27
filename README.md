@@ -1,6 +1,6 @@
-# Building a Real Ban System for .io Games (Without being a retard)
+# Building a Ban System for .io Games (Targets sentient beings)
 
-> **Heads up:** This repo is for devs who actually want to stop cheaters. If you are just using `socket.remoteAddress` to ban people, you are doing it wrong. This guide explains how to build a **server-sided**, **multi-layered** system that is genuinely annoying to bypass.
+> **Heads up:** This repo is for devs who actually want to stop cheaters. If you are just using `socket.remoteAddress` to ban people, you are doing it incompletely. This manual explains how to build a **server-sided**, **multi-layered** system that is genuinely annoying to bypass.
 
 ---
 
@@ -18,7 +18,7 @@ A good ban system isn't about one magic trick. It's about layering traps. If you
 ## 2. Why Most Games Fail
 Let's be real, most .io games have terrible security.
 *   **IP Bans:** Kid restarts router -> New IP -> Back in game. Useless.
-*   **Client-Side Checks:** If you have code like `if (isBanned) window.close()`, any script kiddie can delete that line in the F12 console.
+*   **Client-Side Checks:** If you have code like `if (isBanned) window.close()`, any script kiddie can use the oldest trick in the book: `window.close = new Function`
 *   **Ignoring Behavior:** Bots walk in perfect straight lines. If you aren't checking for that, you're inviting them in.
 
 ---
@@ -31,18 +31,20 @@ Here is the logic. It works in a loop between the Client and your Backend.
 2.  **JS grabs the fingerprints:**
     *   Canvas, WebGL, AudioContext, RAM, Screen Res.
     *   Tries to leak Local IP via WebRTC (if the browser allows it).
-    *   Records mouse movement variance (is it robotic?).
-3.  **Sends it to `/auth`.**
+    *   Entropy from mouse acceleration, keypress events, et cetera
+3.  **Sends it to the verification endpoint.**
 
 ### [SERVER SIDE - The Brain]
 4.  **Receive the data.**
-5.  **The Secret Weapon (JA3):** While the handshake happens, the server calculates the **JA3 Hash** from the TLS connection.
+5.  **The Secret Weapon (JA3):** The server calculates the **JA3 Hash** from the TLS ClientHello.
+    *   This allows to predict which browser (and possibly its version range) is used
+        Therefore allowing to confirm whether the useragent has been tampered or the request came from a Go TLS library
     *   *Note: You can't do this in JS. It has to be done on the backend (Node, Go, Nginx, etc).*
 6.  **Check the DB:**
     *   UserID banned?
     *   Fingerprint hash matches a banned one?
     *   JA3 hash looks like a Python script instead of Chrome?
-    *   IP belongs to a VPN provider?
+    *   IP belongs to a hosting provider?
 7.  **Verdict:**
     *   **BANNED:** Send a generic error (don't tell them exactly why).
     *   **CLEAN:** Give them a temporary token and let them play.
